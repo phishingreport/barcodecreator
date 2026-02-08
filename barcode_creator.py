@@ -104,22 +104,34 @@ def create_pdf(start: int, end: int, template_name: str, output_path: str):
                 text = str(num)
                 img = generate_barcode_image(text, scale=1.0)
 
-                # Fit barcode into label area
-                max_img_w = int(label_w - 10)
-                max_img_h = int(label_h - 18)
-                img.thumbnail((max_img_w, max_img_h), Image.LANCZOS)
+                # Fit barcode into label area (work in points). Render at high DPI
+                # to keep barcode bars sharp when placed into PDF.
+                max_img_w_pt = float(label_w - 10)  # leave a small horizontal padding (points)
+                max_img_h_pt = float(label_h - 18)  # leave a small vertical padding (points)
+
+                target_dpi = 300.0
+                # Convert target size in points to pixels for high-res raster
+                target_px_w = max(1, int(math.ceil(max_img_w_pt * (target_dpi / 72.0))))
+                target_px_h = max(1, int(math.ceil(max_img_h_pt * (target_dpi / 72.0))))
+
+                # Resize using NEAREST to preserve sharp barcode edges
+                img = img.resize((target_px_w, target_px_h), resample=Image.NEAREST)
 
                 buf = io.BytesIO()
-                img.save(buf, format="PNG")
+                img.save(buf, format="PNG", dpi=(int(target_dpi), int(target_dpi)))
                 buf.seek(0)
 
                 x = x_positions[cidx]
                 y = y_positions[r]
 
                 # Center horizontally and vertically a bit
-                draw_x = x + (label_w - img.width) / 2
-                draw_y = y + (label_h - img.height) / 2 + 6
-                c.drawImage(ImageReader(buf), draw_x, draw_y, width=img.width, height=img.height)
+                draw_x = x + (label_w - max_img_w_pt) / 2
+                draw_y = y + (label_h - max_img_h_pt) / 2 + 6
+
+                # Draw at point sizes (PDF units). ReportLab will use the provided
+                # width/height in points; since we rendered the PNG at `target_dpi`,
+                # the image will look crisp.
+                c.drawImage(ImageReader(buf), draw_x, draw_y, width=max_img_w_pt, height=max_img_h_pt)
 
                 # small text below barcode
                 c.setFont("Helvetica", 8)

@@ -70,7 +70,7 @@ def generate_barcode_image(data: str, scale: float = 1.0) -> Image.Image:
     return img
 
 
-def create_pdf(start: int, end: int, template_name: str, output_path: str):
+def create_pdf(start: int, end: int, template_name: str, output_path: str, header_text: str = ""):
     tpl = TEMPLATES.get(template_name)
     if not tpl:
         raise ValueError("Unknown template")
@@ -124,9 +124,14 @@ def create_pdf(start: int, end: int, template_name: str, output_path: str):
                 x = x_positions[cidx]
                 y = y_positions[r]
 
+                # Draw header text if provided
+                if header_text:
+                    c.setFont("Helvetica", 9)
+                    c.drawCentredString(x + label_w / 2, y + label_h - 10, header_text)
+
                 # Center horizontally and vertically a bit
                 draw_x = x + (label_w - max_img_w_pt) / 2
-                draw_y = y + (label_h - max_img_h_pt) / 2 + 6
+                draw_y = y + (label_h - max_img_h_pt) / 2 - 8 if header_text else y + (label_h - max_img_h_pt) / 2 + 6
 
                 # Draw at point sizes (PDF units). ReportLab will use the provided
                 # width/height in points; since we rendered the PNG at `target_dpi`,
@@ -158,17 +163,21 @@ class App:
         self.end_var = StringVar(value="30")
         Entry(root, textvariable=self.end_var).grid(row=1, column=1)
 
-        Label(root, text="Avery template:").grid(row=2, column=0, sticky="e")
+        Label(root, text="Header text (optional):").grid(row=2, column=0, sticky="e")
+        self.header_var = StringVar(value="")
+        Entry(root, textvariable=self.header_var).grid(row=2, column=1)
+
+        Label(root, text="Avery template:").grid(row=3, column=0, sticky="e")
         self.template_var = StringVar()
         cb = ttk.Combobox(root, textvariable=self.template_var, values=list(TEMPLATES.keys()), state="readonly")
-        cb.grid(row=2, column=1)
+        cb.grid(row=3, column=1)
         cb.current(0)
 
-        Button(root, text="Choose output PDF...", command=self.choose_output).grid(row=3, column=0)
+        Button(root, text="Choose output PDF...", command=self.choose_output).grid(row=4, column=0)
         self.out_label = Label(root, text="Not chosen")
-        self.out_label.grid(row=3, column=1)
+        self.out_label.grid(row=4, column=1)
 
-        Button(root, text="Generate PDF", command=self.generate).grid(row=4, column=0, columnspan=2, pady=10)
+        Button(root, text="Generate PDF", command=self.generate).grid(row=5, column=0, columnspan=2, pady=10)
 
         self.output_path = None
 
@@ -195,7 +204,8 @@ class App:
             return
 
         try:
-            create_pdf(start, end, self.template_var.get(), self.output_path)
+            header_text = self.header_var.get().strip()
+            create_pdf(start, end, self.template_var.get(), self.output_path, header_text)
         except Exception as e:
             messagebox.showerror("Error", f"Failed to generate PDF: {e}")
             return

@@ -18,6 +18,18 @@ from PIL import Image
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+# Register a reliable TTF for consistent glyph rendering (fallback to Helvetica)
+FONT_NAME = "Helvetica"
+try:
+    TTF_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    if os.path.exists(TTF_PATH):
+        pdfmetrics.registerFont(TTFont("DejaVuSans", TTF_PATH))
+        FONT_NAME = "DejaVuSans"
+except Exception:
+    FONT_NAME = "Helvetica"
 
 
 TEMPLATES = {
@@ -126,7 +138,7 @@ def create_pdf(start: int, end: int, template_name: str, output_path: str, heade
 
                 # Draw header text if provided
                 if header_text:
-                    c.setFont("Helvetica", 9)
+                    c.setFont(FONT_NAME, 9)
                     c.drawCentredString(x + label_w / 2, y + label_h - 10, header_text)
 
                 # Center horizontally and vertically a bit
@@ -139,7 +151,7 @@ def create_pdf(start: int, end: int, template_name: str, output_path: str, heade
                 c.drawImage(ImageReader(buf), draw_x, draw_y, width=max_img_w_pt, height=max_img_h_pt)
 
                 # small text below barcode
-                c.setFont("Helvetica", 8)
+                c.setFont(FONT_NAME, 8)
                 c.drawCentredString(x + label_w / 2, y + 4, text)
 
                 idx += 1

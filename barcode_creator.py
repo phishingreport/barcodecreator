@@ -150,9 +150,7 @@ def create_pdf(start: int, end: int, template_name: str, output_path: str, heade
                 # the image will look crisp.
                 c.drawImage(ImageReader(buf), draw_x, draw_y, width=max_img_w_pt, height=max_img_h_pt)
 
-                # small text below barcode
-                c.setFont(FONT_NAME, 8)
-                c.drawCentredString(x + label_w / 2, y + 4, text)
+                # (Removed small duplicate text — human-readable text is in the barcode image)
 
                 idx += 1
             if idx >= total:
